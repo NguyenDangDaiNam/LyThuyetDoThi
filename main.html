@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minh hoạ trực quan và demo thuật toán Prim, Dijkstra</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body>
+    <h1>Thuật toán: Prim và Dijkstra</h1>
+
+    <div id="container">
+        <div id="controls">
+            <h3>Hướng dẫn:</h3>
+            <p>1. Chọn chức năng Vẽ đỉnh hoặc Vẽ cạnh.</p>
+            <p>2. Nhấp vào bảng bên để thêm đỉnh, hoặc chọn hai đỉnh để thêm cạnh.</p>
+            <p>3. Chọn đỉnh bắt đầu cho thuật toán.</p>
+            <p>4. Nhấn nút Thực hiện thuật toán để chạy thuật toán và xem Kết quả thuật toán ở phía dưới.</p>
+            
+            <h3>Điều khiển</h3>
+
+            <button onclick="setMode('addNode')">Vẽ đỉnh</button>
+
+            <button onclick="setMode('addEdge')">Vẽ cạnh</button>
+
+            <label>
+                <input type="radio" name="graphType" value="undirected" checked onchange="setGraphType('undirected')">
+            </label>
+            <!-- tdt: type do thi -->
+            <div class="tdt">Đồ thị vô hướng</div>
+
+            <label>
+                <input type="radio" name="graphType" value="directed" onchange="setGraphType('directed')">
+            </label>
+            <div class="tdt">Đồ thị có hướng</div>
+
+            <button onclick="setMode('remove')">Xóa đỉnh / cạnh</button>
+
+            <button onclick="setMode('selectstart')">Chọn đỉnh bắt đầu</button>
+
+            <button onclick="runPrim()">Thực hiện thuật toán Prim</button>
+
+            <button onclick="runDijkstra()">Thực hiện thuật toán Dijkstra</button>
+
+            <button onclick="deleteGraph()">Xóa đồ thị</button>
+        </div>
+
+        <div id="graph">
+            <canvas id="canvas"></canvas>
+        </div>
+        
+    </div>
+
+    <div id="output">
+        <h3>Kết quả thuật toán:</h3>
+        <p id="result">Chưa có kết quả.</p>
+    </div>
+    <script src="./main.js"></script>
+</body>
+
+</html> 
