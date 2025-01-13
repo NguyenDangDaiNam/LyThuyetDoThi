@@ -19,11 +19,7 @@
             <p>4. Nhấn nút Thực hiện thuật toán để chạy thuật toán và xem Kết quả thuật toán ở phía dưới.</p>
             
             <h3>Điều khiển</h3>
-
-            <button onclick="setMode('addNode')">Vẽ đỉnh</button>
-
-            <button onclick="setMode('addEdge')">Vẽ cạnh</button>
-
+            
             <label>
                 <input type="radio" name="graphType" value="undirected" checked onchange="setGraphType('undirected')">
             </label>
@@ -34,6 +30,10 @@
                 <input type="radio" name="graphType" value="directed" onchange="setGraphType('directed')">
             </label>
             <div class="tdt">Đồ thị có hướng</div>
+
+            <button onclick="setMode('addNode')">Vẽ đỉnh</button>
+
+            <button onclick="setMode('addEdge')">Vẽ cạnh</button>
 
             <button onclick="setMode('remove')">Xóa đỉnh / cạnh</button>
 
