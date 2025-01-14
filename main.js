@@ -55,6 +55,7 @@ function addNode(x, y) {
     drawGraph();
 }
 
+
 //Hàm addEdge có chức năng thêm cạnh vào đồ thị, bao gồm cả việc gán trọng số cho cạnh đó
 function addEdge(x, y) {
     const clickedNode = nodes.find(node => {
@@ -75,18 +76,76 @@ function addEdge(x, y) {
                 return; 
             }
 
-            // Thêm cạnh vào danh sách các cạnh của đồ thị
-            edges.push({
-                from: selectedNodes[0].id,
-                to: selectedNodes[1].id,
-                weight: parseInt(weight) 
-            });
+            // Kiểm tra chế độ (mode) của đồ thị
+            if (graphType === 'directed') {
+                // Chế độ đồ thị có hướng
+                // Kiểm tra xem giữa 2 đỉnh đã có cạnh nào chưa
+                const existingEdgesFromTo = edges.filter(edge => (
+                    (edge.from === selectedNodes[0].id && edge.to === selectedNodes[1].id) ||
+                    (edge.from === selectedNodes[1].id && edge.to === selectedNodes[0].id)
+                ));
+
+                // Nếu chưa có cạnh nào, thêm 1 cạnh mới
+                if (existingEdgesFromTo.length === 0) {
+                    edges.push({
+                        from: selectedNodes[0].id,
+                        to: selectedNodes[1].id,
+                        weight: parseInt(weight)
+                    });
+                }
+                // Nếu đã có cạnh, kiểm tra hướng của cạnh đó
+                else {
+                    let existingEdge = existingEdgesFromTo.find(edge => edge.from === selectedNodes[0].id && edge.to === selectedNodes[1].id);
+                    if (existingEdge) {
+                        // Cạnh mới cùng hướng với cạnh cũ, xoá trọng số cũ thêm mới
+                        edges = edges.filter(edge => !(
+                            (edge.from === selectedNodes[0].id && edge.to === selectedNodes[1].id) ||
+                            (edge.from === selectedNodes[1].id && edge.to === selectedNodes[0].id)
+                        ));
+                        edges.push({
+                            from: selectedNodes[0].id,
+                            to: selectedNodes[1].id,
+                            weight: parseInt(weight)});
+                    } else {
+                        // Cạnh mới ngược hướng với cạnh cũ, thêm cạnh mới
+                        edges.push({
+                            from: selectedNodes[0].id,
+                            to: selectedNodes[1].id,
+                            weight: parseInt(weight)
+                        });
+                    }
+                }
+            }
+            // Chế độ đồ thị vô hướng
+            else {
+                // Kiểm tra xem giữa 2 đỉnh đã có cạnh chưa
+                const existingEdge = edges.find(edge => (
+                    (edge.from === selectedNodes[0].id && edge.to === selectedNodes[1].id) ||
+                    (edge.from === selectedNodes[1].id && edge.to === selectedNodes[0].id)
+                ));
+
+                if (existingEdge) {
+                    // Nếu có cạnh, xóa cạnh cũ trước khi thêm cạnh mới
+                    edges = edges.filter(edge => !(
+                        (edge.from === selectedNodes[0].id && edge.to === selectedNodes[1].id) ||
+                        (edge.from === selectedNodes[1].id && edge.to === selectedNodes[0].id)
+                    ));
+                }
+
+                // Thêm cạnh mới vào danh sách các cạnh của đồ thị
+                edges.push({
+                    from: selectedNodes[0].id,
+                    to: selectedNodes[1].id,
+                    weight: parseInt(weight)
+                });
+            }
 
             selectedNodes = [];
             drawGraph();
         }
     }
 }
+
 
 // Vẽ đồ thị 
 function drawGraph() {
@@ -130,16 +189,27 @@ function drawGraph() {
             ctx.stroke();
 
             // Hiển thị trọng số
-            const weightX = (fromNode.x + toNode.x) / 2 - 15;
-            const weightY = (fromNode.y + toNode.y) / 2 - 20;
-
             if (graphType === 'directed') {
-                ctx.fillStyle = '#fc5b85';  
+                if (fromNode.id < toNode.id) {
+                    // Trọng số hiển thị ở trên, từ đỉnh A->B
+                    const weightX = (fromNode.x + toNode.x) / 2 - 15;
+                    const weightY = (fromNode.y + toNode.y) / 2 - 20;
+                    ctx.fillStyle = '#fc5b85';
+                    ctx.fillText(edge.weight, weightX, weightY);
+                } else {
+                    // Trọng số hiển thị ở dưới, từ đỉnh B->A
+                    const weightX = (fromNode.x + toNode.x) / 2 - 15;
+                    const weightY = (fromNode.y + toNode.y) / 2 + 20;
+                    ctx.fillStyle = '#fc5b85';
+                    ctx.fillText(edge.weight, weightX, weightY);
+                }
             } else {
-                ctx.fillStyle = '#FFD700'; 
+                // Chế độ vô hướng, trọng số hiển thị ở trên
+                const weightX = (fromNode.x + toNode.x) / 2 - 15;
+                const weightY = (fromNode.y + toNode.y) / 2 - 20;
+                ctx.fillStyle = '#FFD700';
+                ctx.fillText(edge.weight, weightX, weightY);
             }
-
-            ctx.fillText(edge.weight, weightX, weightY);
 
             // Vẽ mũi tên nếu đồ thị có hướng
             if (graphType === 'directed') {
