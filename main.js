@@ -189,10 +189,27 @@ function drawGraph() {
             ctx.stroke();
 
             // Hiển thị trọng số
-            const weightX = (fromNode.x + toNode.x) / 2 - 15;
-            const weightY = (fromNode.y + toNode.y) / 2 - 20;
-            ctx.fillStyle = edge.weightColor || (graphType === 'directed' ? '#fc5b85' : '#FFD700');
-            ctx.fillText(edge.weight, weightX, weightY);
+            if (graphType === 'directed') {
+                if (fromNode.id < toNode.id) {
+                    // Trọng số hiển thị ở trên, từ đỉnh A->B
+                    const weightX = (fromNode.x + toNode.x) / 2 - 15;
+                    const weightY = (fromNode.y + toNode.y) / 2 - 20;
+                    ctx.fillStyle = '#fc5b85';
+                    ctx.fillText(edge.weight, weightX, weightY);
+                } else {
+                    // Trọng số hiển thị ở dưới, từ đỉnh B->A
+                    const weightX = (fromNode.x + toNode.x) / 2 - 15;
+                    const weightY = (fromNode.y + toNode.y) / 2 + 20;
+                    ctx.fillStyle = '#fc5b85';
+                    ctx.fillText(edge.weight, weightX, weightY);
+                }
+            } else {
+                // Chế độ vô hướng, trọng số hiển thị ở trên
+                const weightX = (fromNode.x + toNode.x) / 2 - 15;
+                const weightY = (fromNode.y + toNode.y) / 2 - 20;
+                ctx.fillStyle = '#FFD700';
+                ctx.fillText(edge.weight, weightX, weightY);
+            }
 
             // Vẽ mũi tên nếu đồ thị có hướng
             if (graphType === 'directed') {
