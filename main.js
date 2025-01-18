@@ -182,45 +182,28 @@ function drawGraph() {
             const toY = toNode.y - (nodeR * dy) / distance;
 
             ctx.beginPath();
-            ctx.moveTo(fromX, fromY);  
-            ctx.lineTo(toX, toY);  
-            ctx.strokeStyle = graphType === 'directed' ? directedEdgeColor : edgeColor;
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.strokeStyle = edge.color || (graphType === 'directed' ? directedEdgeColor : edgeColor);
             ctx.lineWidth = 2;
             ctx.stroke();
 
             // Hiển thị trọng số
-            if (graphType === 'directed') {
-                if (fromNode.id < toNode.id) {
-                    // Trọng số hiển thị ở trên, từ đỉnh A->B
-                    const weightX = (fromNode.x + toNode.x) / 2 - 15;
-                    const weightY = (fromNode.y + toNode.y) / 2 - 20;
-                    ctx.fillStyle = '#fc5b85';
-                    ctx.fillText(edge.weight, weightX, weightY);
-                } else {
-                    // Trọng số hiển thị ở dưới, từ đỉnh B->A
-                    const weightX = (fromNode.x + toNode.x) / 2 - 15;
-                    const weightY = (fromNode.y + toNode.y) / 2 + 20;
-                    ctx.fillStyle = '#fc5b85';
-                    ctx.fillText(edge.weight, weightX, weightY);
-                }
-            } else {
-                // Chế độ vô hướng, trọng số hiển thị ở trên
-                const weightX = (fromNode.x + toNode.x) / 2 - 15;
-                const weightY = (fromNode.y + toNode.y) / 2 - 20;
-                ctx.fillStyle = '#FFD700';
-                ctx.fillText(edge.weight, weightX, weightY);
-            }
+            const weightX = (fromNode.x + toNode.x) / 2 - 15;
+            const weightY = (fromNode.y + toNode.y) / 2 - 20;
+            ctx.fillStyle = edge.weightColor || (graphType === 'directed' ? '#fc5b85' : '#FFD700');
+            ctx.fillText(edge.weight, weightX, weightY);
 
             // Vẽ mũi tên nếu đồ thị có hướng
             if (graphType === 'directed') {
-                    mt(fromNode, toNode);
+                mt(fromNode, toNode, edge);
             }
         }
     });
 }
 
 // Hàm vẽ mũi tên cho đồ thị có hướng
-function mt(fromNode, toNode) {
+function mt(fromNode, toNode, edge) {
     const dx = toNode.x - fromNode.x;
     const dy = toNode.y - fromNode.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -237,13 +220,13 @@ function mt(fromNode, toNode) {
     const arrowX2 = adjustedToX - arrowLength * Math.cos(angle + arrowAngle);
     const arrowY2 = adjustedToY - arrowLength * Math.sin(angle + arrowAngle);
     
-    // Vẽ mũi tên
+    // Vẽ mũi tên với màu động
     ctx.beginPath();
     ctx.moveTo(adjustedToX, adjustedToY);
     ctx.lineTo(arrowX1, arrowY1);
     ctx.lineTo(arrowX2, arrowY2);
     ctx.lineTo(adjustedToX, adjustedToY);
-    ctx.fillStyle = directedEdgeColor;
+    ctx.fillStyle = edge.arrowColor || directedEdgeColor;
     ctx.fill();
 }
 
@@ -403,59 +386,101 @@ function timTPLT(graph) {
     return { cacTPLT,DemTPLT: IdTPLT }; 
 }
 
-// Hàm chạy thuật toán Prim và hiển thị kết quả
+// Đổi màu các cạnh, trọng số và mũi tên thuộc danh sách đáp án
+function highlightEdges(edgeList) {
+    // Duyệt qua tất cả các cạnh trong đồ thị
+    edges.forEach(edge => {
+        // Kiểm tra xem cạnh hiện tại có nằm trong danh sách các cạnh cần đổi màu không
+        const isHighlighted = edgeList.some(
+            e => (e.from === edge.from && e.to === edge.to) || 
+                 (e.from === edge.to && e.to === edge.from)
+        );
+
+        // Nếu thuộc danh sách đáp án
+        if (isHighlighted) {
+            edge.color = '#FFFFFF'; // Đổi màu cạnh thành trắng
+            edge.weightColor = '#FFFFFF'; // Đổi màu trọng số thành trắng
+            edge.arrowColor = '#FFFFFF'; // Đổi màu mũi tên thành trắng (nếu đồ thị có hướng)
+        } else {
+            // Nếu không thuộc đáp án, giữ nguyên màu cạnh, trọng số và mũi tên
+            edge.color = graphType === 'directed' ? directedEdgeColor : edgeColor;
+            edge.weightColor = graphType === 'directed' ? '#fc5b85' : '#FFD700';
+            edge.arrowColor = directedEdgeColor; // Màu mặc định của mũi tên
+        }
+    });
+
+    drawGraph(); // Vẽ lại đồ thị sau khi cập nhật màu sắc
+}
+
+// Chạy thuật toán Prim, hiển thị kết quả và đổi màu các cạnh thuộc cây khung nhỏ nhất
 function runPrim() {
-    if (!startNode) {  // Nếu chưa chọn đỉnh bắt đầu
+    if (!startNode) {
         alert("Vui lòng chọn đỉnh bắt đầu.");
         return;
     }
 
-    const graphMatrix = createGraphMatrix();
-    const { cacTPLT,DemTPLT } = timTPLT(graphMatrix); 
-    const output = document.getElementById('output');  // Lấy phần tử output trên giao diện
-    output.innerHTML = "<h3>Kết quả thuật toán Prim:</h3>";
-    let allMstEdges = [];  // Mảng chứa tất cả các cạnh của MST   
+    const graphMatrix = createGraphMatrix(); // Ma trận trọng số của đồ thị
+    const { cacTPLT, DemTPLT } = timTPLT(graphMatrix); // Tìm các thành phần liên thông
 
-    if (DemTPLT > 1) {  // Nếu đồ thị không liên thông
+    const output = document.getElementById('output');
+    output.innerHTML = "<h3>Kết quả thuật toán Prim:</h3>";
+    let allMstEdges = []; // Danh sách các cạnh thuộc MST của tất cả các thành phần liên thông
+
+    if (DemTPLT > 1) {
         output.innerHTML += `<p><strong>Đồ thị không liên thông. Có ${DemTPLT} thành phần liên thông:</strong></p>`;
         cacTPLT.forEach((TPLT, index) => {
             const nodeIds = TPLT.map(node => nodes[node].id).join(', ');
-            output.innerHTML += `<p><strong>Thành phần ${index + 1}: ${nodeIds}</p><strong>`;
+            output.innerHTML += `<p><strong>Thành phần ${index + 1}: ${nodeIds}</strong></p>`;
 
-            const subGraph = TPLT.map(row => TPLT.map(col => graphMatrix[row][col]));  // Tạo con đồ thị con
-            const subNodes = TPLT.map(index => nodes[index]);  // Lấy các đỉnh con
-            const dinhBdcuaTPLT = subNodes.findIndex(node => node.id === startNode);  // Tìm đỉnh bắt đầu trong con đồ thị
+            // Ma trận trọng số của thành phần liên thông
+            const subGraph = TPLT.map(row => TPLT.map(col => graphMatrix[row][col]));
+            const subNodes = TPLT.map(index => nodes[index]);
+            const startIndex = subNodes.findIndex(node => node.id === startNode);
 
-            const startIndex = dinhBdcuaTPLT === -1 ? 0 : dinhBdcuaTPLT;  // Nếu không tìm thấy, lấy đỉnh đầu tiên
-
-            if (TPLT.length === 1) {  // Nếu thành phần chỉ có 1 đỉnh
+            if (TPLT.length === 1) {
                 output.innerHTML += `<p>Không có cạnh trong thành phần ${index + 1} vì chỉ có 1 đỉnh.</p>`;
             } else {
-                const mstEdges = primAlgorithm(startIndex, subGraph, subNodes);  // Chạy thuật toán Prim trên con đồ thị
-
+                // Chạy thuật toán Prim cho thành phần liên thông
+                const mstEdges = primAlgorithm(startIndex === -1 ? 0 : startIndex, subGraph);
                 const totalWeight = mstEdges.reduce((sum, edge) => sum + edge.weight, 0);
-                allMstEdges.push(mstEdges); 
+
+                // Ánh xạ các cạnh từ subGraph về danh sách cạnh gốc (edges)
+                const mstMappedEdges = mstEdges.map(edge => ({
+                    from: subNodes[edge.from].id,
+                    to: subNodes[edge.to].id,
+                    weight: edge.weight
+                }));
+
+                allMstEdges = allMstEdges.concat(mstMappedEdges);
 
                 output.innerHTML += `<p>Kết quả MST cho thành phần ${index + 1}:</p>`;
-                mstEdges.forEach(edge => {  // Hiển thị các cạnh trong MST
-                    output.innerHTML += `<p>${subNodes[edge.from].id} - ${subNodes[edge.to].id}: ${edge.weight}</p>`;
+                mstMappedEdges.forEach(edge => {
+                    output.innerHTML += `<p>${edge.from} - ${edge.to}: ${edge.weight}</p>`;
                 });
                 output.innerHTML += `<p>Tổng trọng số: ${totalWeight}</p>`;
             }
         });
-    } else {  // Nếu đồ thị là liên thông
+    } else {
+        // Đồ thị liên thông, chạy thuật toán Prim trực tiếp
+        const startIndex = nodes.findIndex(node => node.id === startNode);
+        const mstEdges = primAlgorithm(startIndex, graphMatrix);
+        const totalWeight = mstEdges.reduce((sum, edge) => sum + edge.weight, 0);
+
+        allMstEdges = mstEdges.map(edge => ({
+            from: nodes[edge.from].id,
+            to: nodes[edge.to].id,
+            weight: edge.weight
+        }));
+
         output.innerHTML += `<p><strong>Đồ thị liên thông.</strong></p>`;
-        const startIndex = nodes.findIndex(node => node.id === startNode);  // Tìm đỉnh bắt đầu trong đồ thị
-        const mstEdges = primAlgorithm(startIndex, graphMatrix, nodes);  // Chạy thuật toán Prim trên đồ thị
-
-        const totalWeight = mstEdges.reduce((sum, edge) => sum + edge.weight, 0); 
-        allMstEdges = mstEdges;
-
-        mstEdges.forEach(edge => { 
-            output.innerHTML += `<p>${nodes[edge.from].id} - ${nodes[edge.to].id}: ${edge.weight}</p>`;
+        allMstEdges.forEach(edge => {
+            output.innerHTML += `<p>${edge.from} - ${edge.to}: ${edge.weight}</p>`;
         });
         output.innerHTML += `<h4>Tổng trọng số: ${totalWeight}</h4>`;
     }
+
+    // Đổi màu các cạnh và trọng số thuộc cây khung nhỏ nhất
+    highlightEdges(allMstEdges);
 }
 
 // Hàm thực hiện thuật toán Dijkstra để tìm đường đi ngắn nhất từ một đỉnh bắt đầu đến tất cả các đỉnh khác
@@ -493,7 +518,7 @@ function dijkstraAlgorithm(graphMatrix, startIndex) {
     return { dist, prev }; // Trả về khoảng cách và mảng đường đi
 }
 
-// Hàm chạy thuật toán Dijkstra và hiển thị kết quả
+// Chạy thuật toán Dijkstra và đổi màu các cạnh thuộc đường đi ngắn nhất
 function runDijkstra() {
     if (!startNode) {
         alert("Vui lòng chọn đỉnh bắt đầu.");
@@ -507,6 +532,9 @@ function runDijkstra() {
 
     const output = document.getElementById('output');
     output.innerHTML = "<h3>Kết quả thuật toán Dijkstra:</h3>";
+
+    let shortestPathEdges = []; // Danh sách các cạnh thuộc đường đi ngắn nhất
+
     nodes.forEach((node, index) => {
         if (dist[index] !== Infinity) {
             let path = [];
@@ -514,9 +542,21 @@ function runDijkstra() {
                 path.push(nodes[at].id);
             }
             path.reverse();
+
             output.innerHTML += `<p>${startNode} -> ${node.id}: ${dist[index]} (Đường đi: ${path.join(' -> ')})</p>`;
+
+            // Tạo danh sách các cạnh thuộc đường đi ngắn nhất
+            for (let i = 0; i < path.length - 1; i++) {
+                shortestPathEdges.push({
+                    from: path[i],
+                    to: path[i + 1]
+                });
+            }
         } else {
             output.innerHTML += `<p>${startNode} -> ${node.id}: Không có đường đi</p>`;
         }
     });
+
+    // Đổi màu các cạnh và trọng số thuộc đường đi ngắn nhất
+    highlightEdges(shortestPathEdges);
 }
